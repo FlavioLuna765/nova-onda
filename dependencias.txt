@@ -1,0 +1,36 @@
+bar-sistema/
+├── package.json
+├── server.js
+├── database.js
+└── public/
+    ├── login.html
+    ├── cadastro.html
+    ├── dashboard.html
+    └── style.css
+
+npm init -y
+npm install express cors sqlite3 bcryptjs jsonwebtoken
+
+Para facilitar o seu acesso no dia a dia aí no navegador, aqui estão os links diretos para você abrir as telas do sistema (considerando que o seu servidor está rodando na porta 3000 padrão):
+
+☀️ Tela da Comanda Digital (Estilo Praia):
+http://localhost:3000/comanda.html
+
+🏖️ Tela do Monitor do Balcão:
+http://localhost:3000/balcao.html
+
+🔑 Tela de Login:
+http://localhost:3000/login.html
+
+📊 Painel Geral / Dashboard:
+http://localhost:3000/dashboard.html
+
+🔥 Como testar tudo agora:
+
+Para testar o primeiro login admin, use o e-mail: admin@admin.com e senha: admin123 (ele se cadastra sozinho no banco SQLite ao iniciar).
+
+Se quiser criar novos e-mails e senhas para você ou funcionários, acesse a rota nova: http://localhost:3000/cadastro.html.
+
+Vá no painel de controle e cadastre alguns produtos (ex: Porção de Peixe - R$ 80,00 - Estoque 10).
+
+Faça pedidos pelo cardápio e verifique no painel que o estoque está decrementando perfeitamente e os relatórios estão sendo gerados sem erros de sincronização!
