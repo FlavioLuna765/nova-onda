@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "nova-onda",
+			"path": "."
+		},
+		{
+			"name": "bar-system",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}

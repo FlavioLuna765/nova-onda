@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Balcão - Monitoramento de Comandas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #ffffff; color: #1a202c; font-family: sans-serif; padding: 20px; }
+        .grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .card-balcao { background-color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px; padding: 18px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.05); color: #1a202c; }
+        .card-balcao.pagamento-ativo { border-color: #dc2626; box-shadow: 0 0 15px rgba(220,38,38,0.25); background-color: #fff5f5; }
+        .mesa-header { font-size: 1.4rem; font-weight: 800; color: #c2410c; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; }
+        .alerta-maquina { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); border: 1px solid #f87171; color: #ffffff; font-weight: 800; padding: 12px; border-radius: 10px; font-size: 0.95rem; text-align: center; animation: pulsar 1.5s infinite; }
+        .lista-itens-box { background-color: #ffffff; border: 1px solid #cbd5e1; min-height: 80px; }
+        @keyframes pulsar { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-light">
+            <h2 class="text-dark fw-bold">📋 MONITOR DE PEDIDOS QUIOSQUE NOVA ONDA (BALCÃO)</h2>
+            <button class="btn btn-sm btn-outline-dark fw-bold" onclick="location.href='dashboard.html'">Painel ADM</button>
+        </div>
+        <div id="lista-pedidos-ativos" class="grid-layout"></div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) location.href = 'login.html';
+
+        async function carregarBalcao() {
+            try {
+                const res = await fetch('/api/orders/active', { headers: { 'Authorization': `Bearer ${token}` } });
+                const pedidos = await res.json();
+                const container = document.getElementById('lista-pedidos-ativos');
+                
+                if(pedidos.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center col-12 my-5 h5">🏖️ Nenhum guarda-sol ativo no momento.</p>';
+                    return;
+                }
+
+                container.innerHTML = pedidos.map(p => {
+                    const precisaLevarMaquina = p.status === 'pagamento';
+                    return `
+                        <div class="card-balcao ${precisaLevarMaquina ? 'pagamento-ativo' : ''}">
+                            <div class="mesa-header d-flex justify-content-between align-items-center">
+                                <span>🏖️ MESA N° ${p.mesa}</span>
+                                <span class="badge ${precisaLevarMaquina ? 'bg-danger text-white':'bg-primary'}" style="font-size:0.8rem;">${p.status.toUpperCase()}</span>
+                            </div>
+                            <h5 class="text-dark mb-2" style="font-weight:700;">${p.cliente}</h5>
+                            <div class="p-2 rounded mb-3 lista-itens-box">
+                                ${p.itens.map(i => `<div class="small py-1 border-bottom border-light d-flex justify-content-between text-dark"><span>⚡ ${i.qtd}x ${i.name}</span> <span class="fw-bold">R$ ${(i.price*i.qtd).toFixed(2)}</span></div>`).join('')}
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center fw-bold text-dark mb-3">
+                                <span>TOTAL BRUTO (+10%):</span>
+                                <span class="h4 text-success m-0 fw-bold">R$ ${p.total.toFixed(2)}</span>
+                            </div>
+                            
+                            ${precisaLevarMaquina ? `
+                                <div class="alerta-maquina mb-3">
+                                    ⚠️ LEVAR A MÁQUINA DE CARTÃO!<br>CONTA SOLICITADA PELO CLIENTE<br>
+                                    <small class="text-warning fw-bold">Forma/Obs: ${p.nota} ${p.contato ? `[${p.contato}]`:''}</small>
+                                </div>
+                            ` : ''}
+
+                            <button class="btn ${precisaLevarMaquina ? 'btn-danger':'btn-outline-dark'} w-100 fw-bold py-2" onclick="mudarStatus(${p.id}, 'finalizado')">
+                                ${precisaLevarMaquina ? '💳 Confirmar Pagamento e Liberar Mesa' : 'Encerrar Comanda Direto'}
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            } catch (e) { }
+        }
+
+        async function mudarStatus(id, novoStatus) {
+            await fetch(`/api/orders/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ status: novoStatus })
+            });
+            carregarBalcao();
+        }
+
+        setInterval(carregarBalcao, 4000);
+        carregarBalcao();
+    </script>
+</body>
+</html>

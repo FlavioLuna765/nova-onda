@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Nova Onda</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Configuração do fundo com a imagem de praia em tela cheia */
+        body { 
+            background: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1920&q=80') no-repeat center center fixed; 
+            background-size: cover;
+            font-family: sans-serif; 
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        /* Caixa de login com efeito de vidro fosco (Glassmorphism) */
+        .login-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(245, 158, 11, 0.5); /* Borda sutil em tom ouro */
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-gold {
+            background-color: #f59e0b;
+            color: #ffffff;
+            font-weight: bold;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gold:hover {
+            background-color: #d97706;
+            color: #ffffff;
+            transform: translateY(-1px);
+        }
+
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            color: #1e293b !important;
+            border: 1px solid #cbd5e1;
+        }
+
+        .form-control:focus {
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 0.25rem rgba(245, 158, 11, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card text-center">
+        <h2 class="fw-bold text-dark mb-2">🏖️ BEM VINDO AO QUIOSQUE NOVA ONDA</h2>
+        <p class="text-secondary small mb-4">Painel de Controle do Quiosque</p>
+
+        <form id="form-login" onsubmit="executarLogin(event)">
+            <div class="mb-3 text-start">
+                <label for="email" class="form-label text-dark fw-bold small">E-mail</label>
+                <input type="email" id="email" class="form-control" placeholder="seuemail@quiosque.com" required>
+            </div>
+            
+            <div class="mb-4 text-start">
+                <label for="password" class="form-label text-dark fw-bold small">Senha</label>
+                <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-gold w-100 py-2 mb-2">Entrar no Sistema ⚡</button>
+        </form>
+    </div>
+
+    <script>
+        // Mantém a sua lógica de integração com o backend intacta
+        async function executarLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const dados = await res.json();
+
+                if (!res.ok) {
+                    alert(dados.error || "Erro ao fazer login.");
+                    return;
+                }
+
+                // Salva o token e redireciona para o painel administrativo
+                localStorage.setItem('token', dados.token);
+                localStorage.setItem('role', dados.role);
+                localStorage.setItem('name', dados.name);
+                
+                location.href = 'dashboard.html';
+            } catch (error) {
+                console.error("Erro na requisição de login:", error);
+                alert("Não foi possível conectar ao servidor.");
+            }
+        }
+    </script>
+</body>
+</html>

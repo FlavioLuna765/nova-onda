@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comanda Digital - Controle de Guarda-Sol</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --ocean-blue: #006699; --sky-blue: #e6f2ff; --sun-gold: #f2a900; --dark-text: #2c3e50; }
+        body { background: linear-gradient(135deg, var(--sky-blue) 0%, #ffffff 100%); color: var(--dark-text); font-family: 'Nunito', sans-serif; min-height: 100vh; padding: 15px; }
+        h2 { font-family: 'Comfortaa', cursive; font-weight: 700; color: var(--ocean-blue); }
+        .card-praia { background: rgba(255, 255, 255, 0.95); border: none; border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(0, 102, 153, 0.1); }
+        .mesa { border: 2px solid #cbd5e1; border-radius: 12px; padding: 12px; cursor: pointer; text-align: center; transition: all 0.2s ease; background: #ffffff; font-weight: 600; }
+        .mesa.ocupada { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        .mesa.selecionada { background: var(--ocean-blue); border-color: var(--ocean-blue); color: #ffffff; transform: scale(1.03); }
+        .btn-praia { background: var(--sun-gold); color: #ffffff; font-weight: 800; border: none; border-radius: 12px; padding: 15px; text-transform: uppercase; width: 100%; transition: all 0.2s; }
+        .btn-praia:disabled { background: #cbd5e1 !important; color: #64748b !important; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <button class="btn btn-sm btn-outline-primary" onclick="window.location.href='dashboard.html'">🌴 Menu Principal</button>
+        <button class="btn btn-sm btn-light text-danger fw-bold" onclick="logout()">Sair</button>
+    </div>
+
+    <div class="card-praia">
+        <h2 class="text-center mb-3">☀️ BEM VINDO AO QUIOSQUE NOVA ONDA</h2>
+        <p class="text-muted text-center small mb-4">Mesas em vermelho já estão ocupadas e bloqueadas para novos acessos.</p>
+        
+        <div class="mb-4">
+            <label class="form-label fw-bold">Nome do Cliente / Grupo:</label>
+            <input type="text" id="nome-cliente" class="form-control form-control-lg border-2" placeholder="Ex: Lucas Silva">
+        </div>
+        
+        <label class="form-label fw-bold mb-2">Número da Mesa:</label>
+        <div class="row g-2 mb-4" id="grid-mesas"></div>
+        
+        <button id="btn-prosseguir" class="btn btn-praia" onclick="abrirCardapioMesa()">Abrir Nova Comanda 🍹</button>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = 'login.html';
+
+        let mesaSelecionada = null;
+        let statusServidorGlobal = {};
+
+        async function init() {
+            const grid = document.getElementById('grid-mesas');
+            grid.innerHTML = '<p class="text-center text-muted col-12">Sincronizando mesas...</p>';
+            
+            let totalMesasConfig = 12; // Valor padrão de contingência
+
+            try {
+                // Busca a configuração dinâmica de mesas cadastrada por você no dashboard
+                const configRes = await fetch('/api/configs/mesas', { headers: { 'Authorization': `Bearer ${token}` } });
+                if(configRes.ok) {
+                    const configDados = await configRes.json();
+                    totalMesasConfig = configDados.total_mesas;
+                }
+
+                const statusRes = await fetch('/api/tables/status', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (statusRes.ok) statusServidorGlobal = await statusRes.json();
+            } catch (e) { console.warn("Erro ao carregar configurações:", e); }
+
+            grid.innerHTML = '';
+            // O loop agora roda dinamicamente baseado no que você cadastrou no painel administrativo!
+            for(let i = 1; i <= totalMesasConfig; i++){
+                const ocupada = !!statusServidorGlobal[i];
+                const nomeCliente = ocupada ? statusServidorGlobal[i].nome : 'Livre';
+
+                grid.innerHTML += `
+                    <div class="col-4 col-md-2">
+                        <div class="mesa ${ocupada ? 'ocupada' : ''}" id="m-${i}" onclick="selecionarMesa(${i}, ${ocupada})">
+                            <span class="d-block small text-muted">🏖️ N° ${i}</span>
+                            <strong class="d-block my-1">${i}</strong>
+                            <small style="font-size: 10px; display:block; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+                                ${nomeCliente}
+                            </small>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        function selecionarMesa(n, ocupada) {
+            const btn = document.getElementById('btn-prosseguir');
+            const inputNome = document.getElementById('nome-cliente');
+            
+            mesaSelecionada = n;
+            document.querySelectorAll('.mesa').forEach(m => m.classList.remove('selecionada'));
+            document.getElementById(`m-${n}`).classList.add('selecionada');
+
+            if(ocupada) {
+                // Bloqueia totalmente a entrada se a comanda já existir para evitar conflitos
+                inputNome.value = statusServidorGlobal[n].nome;
+                inputNome.disabled = true;
+                btn.disabled = true;
+                btn.innerText = `Mesa Ocupada por ${statusServidorGlobal[n].nome} 🛑`;
+            } else {
+                inputNome.value = '';
+                inputNome.disabled = false;
+                btn.disabled = false;
+                btn.innerText = "Abrir Nova Comanda 🍹";
+            }
+        }
+
+        function abrirCardapioMesa() {
+            const nomeInput = document.getElementById('nome-cliente').value;
+            if(!nomeInput || !mesaSelecionada) return alert("Por favor, selecione uma mesa livre e informe o nome!");
+            window.location.href = `cardapio.html?mesa=${mesaSelecionada}&cliente=${encodeURIComponent(nomeInput)}`;
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+        
+        // Inicializa a tela ao carregar
+        init();
+    </script>
+</body>
+</html>
